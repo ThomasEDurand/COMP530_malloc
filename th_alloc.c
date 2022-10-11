@@ -103,8 +103,14 @@ static inline int size2level (ssize_t size) {
     /* Your code here. */
     // Temporarily suppress the compiler warning that size is unused
     // You should remove the following line
-    (void)(size);
-    return 0;
+    if(size <= 32) {return 0;}
+    ssize_t a = 1;
+    ssize_t l = 0;
+    while(a < size){
+        a <<= 1;
+        l++; 
+    }  
+    return l-5;
 }
 
 /* This function allocates and initializes a new superblock.
