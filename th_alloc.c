@@ -103,14 +103,14 @@ static inline int size2level (ssize_t size) {
     /* Your code here. */
     // Temporarily suppress the compiler warning that size is unused
     // You should remove the following line
-    if(size <= 32) {return 0;}
+    if(size <= MIN_ALLOC) {return 0;}
     ssize_t a = 1;
-    ssize_t l = 0;
+    ssize_t i = 0;
     while(a < size){
         a <<= 1;
-        l++; 
+        i++; 
     }  
-    return l-5;
+    return i-5;
 }
 
 /* This function allocates and initializes a new superblock.
@@ -150,9 +150,10 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
     //  Be sure to add this many objects to levels[power]->free_objects, reserving
     //  the first one for the bookkeeping. 
     // Be sure to set free_objects and bytes_per_object to non-zero values.
-    free_objects = 1 << (17-power);
+    bytes_per_object = 1 << (5 + power);
+    free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
     levels[power].free_objects = free_objects; 
-    bytes_per_object = 1 << (5+power);
+    
     // The following loop populates the free list with some atrocious
     // pointer math.  You should not need to change this, provided that you
     // correctly calculate free_objects.
@@ -187,17 +188,19 @@ void *malloc(size_t size) {
     }
 
     // Delete the following two lines
-    errno = -ENOMEM;
-    return rv;
+    //   errno = -ENOMEM;
+    //   return rv;
 
     pool = &levels[power];
 
+    //add superblock if necessary, else go to next one with any free space
     if (!pool->free_objects) {
         bkeep = alloc_super(power);
     } else {
         bkeep = pool->next;
     }
 
+    //inside level, inside superblock
     for ( ; bkeep != NULL; bkeep = bkeep->next) {
         if (bkeep->free_count) {
             struct object *cursor = bkeep->free_list;
