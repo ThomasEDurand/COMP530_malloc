@@ -206,15 +206,25 @@ void *malloc(size_t size) {
         bkeep = pool->next;
     }
 
-    //inside level, inside superblock
+    //loop through superblocks to find one with space, then go inside
+    //superblock that has the space
     for ( ; bkeep != NULL; bkeep = bkeep->next) {
         if (bkeep->free_count) {
-            struct object *cursor = bkeep->free_list;
             /* Remove an object from the free list. */
-            // Your code here
-            //
             // NB: If you take the first object out of a whole
             //     superblock, decrement levels[power]->whole_superblocks
+
+            //similar code used earlier, could we make more efficient with
+            //helper, maybe modify size2level to be different?
+            int bytes_per_object = 1 << (5 + power);
+            int max_free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
+            if (bkeep->free_count == max_free_objects) { 
+                pool->whole_superblocks--;
+            }
+
+            struct object *cursor = bkeep->free_list;
+            cursor = bkeep->free_list->next;
+
             // Temporarily suppress the compiler warning that cursor is unused
             // You should remove the following line
             (void)(cursor);
