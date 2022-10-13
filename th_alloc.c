@@ -158,8 +158,8 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
     // Be sure to set free_objects and bytes_per_object to non-zero values.
     bytes_per_object = 1 << (5 + power);
     free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
-    levels[power].free_objects = free_objects; 
-    
+    levels[power].free_objects += free_objects; 
+    sb->bkeep.free_count = free_objects; 
     // The following loop populates the free list with some atrocious
     // pointer math.  You should not need to change this, provided that you
     // correctly calculate free_objects.
@@ -223,11 +223,15 @@ void *malloc(size_t size) {
             }
 
             struct object *cursor = bkeep->free_list;
-            cursor = bkeep->free_list->next;
+            bkeep->free_list = bkeep->free_list->next;
+            rv = cursor;
+
+            levels[power].free_objects--; 
+            bkeep->free_count--; 
 
             // Temporarily suppress the compiler warning that cursor is unused
             // You should remove the following line
-            (void)(cursor);
+            // (void)(cursor);
             break;
         }
     }
