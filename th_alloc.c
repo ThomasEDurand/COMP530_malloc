@@ -133,12 +133,18 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
     struct superblock* sb;
     int free_objects = 0, bytes_per_object = 0;
     char *cursor;
+
     // Your code here
     // Allocate a page of anonymous memory
     // WARNING: DO NOT use brk---use mmap, lest you face untold suffering
 
+    
+    
+    //DOUBLE CHECK THIS AT OH!
+    
+    page = mmap(NULL, SUPER_BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     sb = (struct superblock*) page;
-    sb->raw = mmap(NULL, SUPER_BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
     // Put this one the list.
     sb->bkeep.next = levels[power].next;
     levels[power].next = &sb->bkeep;
