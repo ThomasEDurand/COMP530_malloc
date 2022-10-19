@@ -103,14 +103,14 @@ static inline int size2level (ssize_t size) {
     /* Your code here. */
     // Temporarily suppress the compiler warning that size is unused
     // You should remove the following line
-    if(size <= 32) {return 0;}
+    if(size <= MIN_ALLOC) {return 0;}
     ssize_t a = 1;
-    ssize_t l = 0;
+    ssize_t i = 0;
     while(a < size){
         a <<= 1;
-        l++; 
+        i++; 
     }  
-    return l-5;
+    return i-5;
 }
 
 /* This function allocates and initializes a new superblock.
@@ -133,12 +133,16 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
     struct superblock* sb;
     int free_objects = 0, bytes_per_object = 0;
     char *cursor;
+
     // Your code here
     // Allocate a page of anonymous memory
     // WARNING: DO NOT use brk---use mmap, lest you face untold suffering
 
+    
+    
+    page = mmap(NULL, SUPER_BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     sb = (struct superblock*) page;
-    sb->raw = mmap(NULL, SUPER_BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
     // Put this one the list.
     sb->bkeep.next = levels[power].next;
     levels[power].next = &sb->bkeep;
@@ -150,9 +154,10 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
     //  Be sure to add this many objects to levels[power]->free_objects, reserving
     //  the first one for the bookkeeping. 
     // Be sure to set free_objects and bytes_per_object to non-zero values.
-    free_objects = 1 << (17-power);
-    levels[power].free_objects = free_objects; 
-    bytes_per_object = 1 << (5+power);
+    bytes_per_object = 1 << (5 + power);
+    free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
+    levels[power].free_objects += free_objects; 
+    sb->bkeep.free_count = free_objects; 
     // The following loop populates the free list with some atrocious
     // pointer math.  You should not need to change this, provided that you
     // correctly calculate free_objects.
@@ -187,31 +192,48 @@ void *malloc(size_t size) {
     }
 
     // Delete the following two lines
-    errno = -ENOMEM;
-    return rv;
+    //   errno = -ENOMEM;
+    //   return rv;
 
     pool = &levels[power];
 
+    //add superblock if necessary, else go to next one with any free space
     if (!pool->free_objects) {
         bkeep = alloc_super(power);
     } else {
         bkeep = pool->next;
     }
 
+    //loop through superblocks to find one with space, then go inside
+    //superblock that has the space
     for ( ; bkeep != NULL; bkeep = bkeep->next) {
         if (bkeep->free_count) {
-            struct object *cursor = bkeep->free_list;
             /* Remove an object from the free list. */
-            // Your code here
-            //
             // NB: If you take the first object out of a whole
             //     superblock, decrement levels[power]->whole_superblocks
+
+            //similar code used earlier, could we make more efficient with
+            //helper, maybe modify size2level to be different?
+            int bytes_per_object = 1 << (5 + power);
+            int max_free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
+            if (bkeep->free_count == max_free_objects) { 
+                pool->whole_superblocks--;
+            }
+
+            struct object *cursor = bkeep->free_list;
+            bkeep->free_list = bkeep->free_list->next;
+            rv = cursor;
+
+            levels[power].free_objects--; 
+            bkeep->free_count--; 
+
             // Temporarily suppress the compiler warning that cursor is unused
             // You should remove the following line
-            (void)(cursor);
+            // (void)(cursor);
             break;
         }
     }
+
 
     // assert that rv doesn't end up being NULL at this point
     assert(rv != NULL);
@@ -234,8 +256,15 @@ void free(void *ptr) {
     // Just ignore free of a null ptr
     if (ptr == NULL) return;
     
+    struct superblock_pool *pool;
     struct superblock_bookkeeping *bkeep = obj2bkeep(ptr);
+    struct object * obj = (struct object*) ptr;
     int power = bkeep->level;
+
+
+    /* Exercise 3: Poison a newly freed object to detect use-after-free errors.
+     * Hint: use FREE_POISON.
+     */
 
     // We need to check for free of any large objects first.
     {
@@ -263,9 +292,20 @@ void free(void *ptr) {
     //   free count.  If you add the final object back to a superblock,
     //   making all objects free, increment whole_superblocks.
 
-    /* Exercise 3: Poison a newly freed object to detect use-after-free errors.
-     * Hint: use FREE_POISON.
-     */
+    //set free objects next to bkeep's next
+    obj->next = bkeep->free_list->next;
+    bkeep->free_list->next = obj;
+
+    levels[power].free_objects++; 
+    bkeep->free_count++; 
+
+    pool = &levels[power];
+
+    int bytes_per_object = 1 << (5 + power);
+    int max_free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
+    if (bkeep->free_count == max_free_objects) { 
+        pool->whole_superblocks++;
+    }
 
     while (levels[power].whole_superblocks > RESERVE_SUPERBLOCK_THRESHOLD) {
         // Exercise 4: Your code here
