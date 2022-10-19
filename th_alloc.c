@@ -258,7 +258,7 @@ void free(void *ptr) {
     
     struct superblock_pool *pool;
     struct superblock_bookkeeping *bkeep = obj2bkeep(ptr);
-    struct object * obj = ptr;
+    struct object * obj = (struct object*) ptr;
     int power = bkeep->level;
 
 
