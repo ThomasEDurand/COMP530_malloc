@@ -256,6 +256,7 @@ void free(void *ptr) {
     // Just ignore free of a null ptr
     if (ptr == NULL) return;
     
+    struct superblock_pool *pool;
     struct superblock_bookkeeping *bkeep = obj2bkeep(ptr);
     struct object * obj = ptr;
     int power = bkeep->level;
@@ -297,6 +298,8 @@ void free(void *ptr) {
 
     levels[power].free_objects++; 
     bkeep->free_count++; 
+
+    pool = &levels[power];
 
     int bytes_per_object = 1 << (5 + power);
     int max_free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
