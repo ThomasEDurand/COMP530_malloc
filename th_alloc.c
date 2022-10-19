@@ -140,8 +140,6 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
 
     
     
-    //DOUBLE CHECK THIS AT OH!
-    
     page = mmap(NULL, SUPER_BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     sb = (struct superblock*) page;
 
@@ -259,7 +257,13 @@ void free(void *ptr) {
     if (ptr == NULL) return;
     
     struct superblock_bookkeeping *bkeep = obj2bkeep(ptr);
+    struct object * obj = ptr;
     int power = bkeep->level;
+
+
+    /* Exercise 3: Poison a newly freed object to detect use-after-free errors.
+     * Hint: use FREE_POISON.
+     */
 
     // We need to check for free of any large objects first.
     {
@@ -287,9 +291,18 @@ void free(void *ptr) {
     //   free count.  If you add the final object back to a superblock,
     //   making all objects free, increment whole_superblocks.
 
-    /* Exercise 3: Poison a newly freed object to detect use-after-free errors.
-     * Hint: use FREE_POISON.
-     */
+    //set free objects next to bkeep's next
+    obj->next = bkeep->free_list->next;
+    bkeep->free_list->next = obj;
+
+    levels[power].free_objects++; 
+    bkeep->free_count++; 
+
+    int bytes_per_object = 1 << (5 + power);
+    int max_free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
+    if (bkeep->free_count == max_free_objects) { 
+        pool->whole_superblocks++;
+    }
 
     while (levels[power].whole_superblocks > RESERVE_SUPERBLOCK_THRESHOLD) {
         // Exercise 4: Your code here
