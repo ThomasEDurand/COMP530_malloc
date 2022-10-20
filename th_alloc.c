@@ -311,11 +311,28 @@ void free(void *ptr) {
         pool->whole_superblocks++;
     }
 
+    struct superblock_bookkeeping * sb_cur;
+    struct superblock_bookkeeping * sb_prev;
+    struct superblock_bookkeeping * sb_next;
     while (levels[power].whole_superblocks > RESERVE_SUPERBLOCK_THRESHOLD) {
-        // Exercise 4: Your code here
-        // Remove a whole superblock from the level
-        // Return that superblock to the OS, using mmunmap
-        break; // hack to keep this loop from hanging; remove in ex 4
+        sb_prev = NULL;
+        sb_cur = levels[power].next;
+        while(sb_cur){
+            sb_next = sb_cur->next;
+            if(sb_cur->free_count == max_free_objects){
+                if(!sb_prev){
+                    levels[power].next = sb_next;
+                } else {
+                    sb_prev->next = sb_next;
+                }
+                munmap(sb_cur, SUPER_BLOCK_SIZE);
+                levels[power].whole_superblocks--;
+                // levels[power].free_objects-= max_free_objects;
+            } else {
+                sb_prev = sb_cur;
+                sb_cur = sb_next;
+            }
+        }        
     }
 
 }
