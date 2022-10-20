@@ -265,6 +265,8 @@ void free(void *ptr) {
     /* Exercise 3: Poison a newly freed object to detect use-after-free errors.
      * Hint: use FREE_POISON.
      */
+    int bytes_per_object = 1 << (5 + power);
+    memset(obj,FREE_POISON, bytes_per_object); 
 
     // We need to check for free of any large objects first.
     {
@@ -301,7 +303,6 @@ void free(void *ptr) {
 
     pool = &levels[power];
 
-    int bytes_per_object = 1 << (5 + power);
     int max_free_objects = SUPER_BLOCK_SIZE / bytes_per_object - 1; 
     if (bkeep->free_count == max_free_objects) { 
         pool->whole_superblocks++;
