@@ -327,7 +327,7 @@ void free(void *ptr) {
                 }
                 munmap(sb_cur, SUPER_BLOCK_SIZE);
                 levels[power].whole_superblocks--;
-                // levels[power].free_objects-= max_free_objects;
+                levels[power].free_objects-= max_free_objects;
             } else {
                 sb_prev = sb_cur;
                 sb_cur = sb_next;
