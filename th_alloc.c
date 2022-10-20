@@ -241,6 +241,9 @@ void *malloc(size_t size) {
     /* Exercise 3: Poison a newly allocated object to detect init errors.
      * Hint: use ALLOC_POISON
      */
+    
+    int bytes_per_object = 1 << (5 + power);
+    memset(rv, ALLOC_POISON, bytes_per_object); 
     return rv;
 }
 
