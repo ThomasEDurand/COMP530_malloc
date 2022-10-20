@@ -317,11 +317,12 @@ void free(void *ptr) {
     sb_prev = NULL;
     sb_cur = levels[power].next;
     while (levels[power].whole_superblocks > RESERVE_SUPERBLOCK_THRESHOLD) {      
-        // while(sb_cur){
             sb_next = sb_cur->next;
             if(sb_cur->free_count == max_free_objects){
                 if(!sb_prev){
+                    sb_prev = sb_cur;
                     levels[power].next = sb_next;
+                    sb_cur = sb_next;
                 } else {
                     sb_prev = sb_cur;
                     sb_cur = sb_next;
@@ -332,10 +333,8 @@ void free(void *ptr) {
             } else {
                 sb_prev = sb_cur;
                 sb_cur = sb_next;
-            }
-     //   }        
+            }        
     }
-
 }
 
 // Do NOT touch this - this will catch any attempt to load this into a multi-threaded app
