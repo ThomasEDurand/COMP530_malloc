@@ -294,7 +294,7 @@ void free(void *ptr) {
 
     //set free objects next to bkeep's next
     obj->next = bkeep->free_list;
-    bkeep->free_list->next = obj;
+    bkeep->free_list = obj;
 
     levels[power].free_objects++; 
     bkeep->free_count++; 
