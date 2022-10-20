@@ -319,14 +319,14 @@ void free(void *ptr) {
     while (levels[power].whole_superblocks > RESERVE_SUPERBLOCK_THRESHOLD) {      
         sb_next = sb_cur->next;
         if(sb_cur->free_count == max_free_objects){
-            if(!sb_prev){
-                
+            if(!sb_prev){ 
                 levels[power].next = sb_next;
             }    
+            
+            munmap(sb_cur, SUPER_BLOCK_SIZE);
             sb_prev = sb_cur;
             sb_cur = sb_next;
             
-            munmap(sb_prev, SUPER_BLOCK_SIZE);
             levels[power].whole_superblocks--;
             levels[power].free_objects-= max_free_objects;
         } else {
