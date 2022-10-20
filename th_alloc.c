@@ -136,7 +136,7 @@ static inline struct superblock_bookkeeping * alloc_super (int power) {
 
     // Your code here
     // Allocate a page of anonymous memory
-    // WARNING: DO NOT use brk---use mmap, lest you face untold suffering
+    // WARNING: DO NOT use brkseconds---use mmap, lest you face untold suffering
 
     
     
@@ -293,7 +293,7 @@ void free(void *ptr) {
     //   making all objects free, increment whole_superblocks.
 
     //set free objects next to bkeep's next
-    obj->next = bkeep->free_list->next;
+    obj->next = bkeep->free_list;
     bkeep->free_list->next = obj;
 
     levels[power].free_objects++; 
